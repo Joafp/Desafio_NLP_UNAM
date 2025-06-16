@@ -198,3 +198,9 @@ venv*/
 
 # recursos del curso de la UNAM
 curso_recursos/
+
+# data
+data*/
+
+results*/
+logs*/

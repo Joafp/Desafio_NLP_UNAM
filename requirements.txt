@@ -1,6 +1,6 @@
 # == Manipulación de datos ==
 pandas                 # Estructuras de datos y análisis eficiente de datos tabulares
-
+openpyxl
 # == Machine Learning ==
 scikit-learn           # Algoritmos clásicos de ML, pipelines, validación cruzada, etc.
 
@@ -23,8 +23,8 @@ accelerate             # Manejo simplificado de entrenamiento distribuido y en G
 fasttext               # Generación de vectores de palabras robustos a palabras raras (OOV)
 
 # == Deep Learning ==
-torch                  # Framework de deep learning de PyTorch
-tensorflow[and-cuda]   # Framework de deep learning de Google, más usado en producción
+# torch                  # Framework de deep learning de PyTorch
+# tensorflow[and-cuda]   # Framework de deep learning de Google, más usado en producción
 
 # == Visualización ==
 matplotlib             # Gráficos básicos y personalizables en 2D
