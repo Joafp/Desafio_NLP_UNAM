@@ -1,0 +1,38 @@
+# == Manipulación de datos ==
+pandas                 # Estructuras de datos y análisis eficiente de datos tabulares
+
+# == Machine Learning ==
+scikit-learn           # Algoritmos clásicos de ML, pipelines, validación cruzada, etc.
+
+# == Procesamiento de Lenguaje Natural ==
+nltk                   # Tokenización, stemming, POS tagging y otros recursos NLP
+spacy                  # Procesamiento eficiente de texto con modelos pre-entrenados
+gensim                 # Modelado de tópicos y Word2Vec/Doc2Vec
+
+# == Métricas de evaluación ==
+evaluate               # Métricas de evaluación de modelos, de Hugging Face
+rouge-score            # Métrica ROUGE, útil para tareas de resumen de texto
+
+# == Hugging Face ==
+transformers           # Modelos preentrenados (BERT, GPT, T5, etc.) para NLP
+datasets               # Conjunto de datasets estándar de NLP para entrenamiento/evaluación
+tokenizers             # Tokenizadores rápidos basados en Rust, utilizados por Transformers
+accelerate             # Manejo simplificado de entrenamiento distribuido y en GPU
+
+# == Embeddings ==
+fasttext               # Generación de vectores de palabras robustos a palabras raras (OOV)
+
+# == Deep Learning ==
+torch                  # Framework de deep learning de PyTorch
+tensorflow[and-cuda]   # Framework de deep learning de Google, más usado en producción
+
+# == Visualización ==
+matplotlib             # Gráficos básicos y personalizables en 2D
+seaborn                # Visualización estadística basada en Matplotlib
+plotly                 # Gráficos interactivos en el navegador o notebooks
+cufflinks              # Integra Plotly con pandas para trazado rápido de datos
+bertviz                # Visualización de atención en modelos Transformer (como BERT)
+
+# == Otros ==
+requests               # Cliente HTTP simple para consumir APIs REST
+tqdm                   # Barras de progreso elegantes en loops de Python
