@@ -234,3 +234,174 @@ def train_sentiment_model_basic_vanilla(
     print(f"Paso 6/6: ✅ ¡Modelo y tokenizador guardados exitosamente en '{final_model_path}'!")
     
     return trainer
+
+
+def train_sentiment_model_basic_vanilla_ds(
+    df: pd.DataFrame,
+    model_name: str,
+    text_column: str = 'structured_text',
+    label_column: str = 'Polarity',
+    output_base_dir: str = '../modelos_final'
+):
+    """
+    Entrena un modelo Transformer con una división simple de train/validation (80/20).
+    No usa K-Fold, ni Optuna, ni pesos de clase.
+    """
+    print(f"🚀 Iniciando entrenamiento BÁSICO para el modelo: {model_name}")
+
+    # --- 1. Preparación de Datos ---
+    print("Paso 1/6: Preparando los datos...")
+    df_processed = df.rename(columns={text_column: 'text', label_column: 'label'})
+    df_processed['label'] = df_processed['label'].apply(lambda x: int(x) - 1)
+    
+    dataset = Dataset.from_pandas(df_processed[['text', 'label']])
+    train_test_split = dataset.train_test_split(test_size=0.2, seed=42)
+    train_dataset = train_test_split['train']
+    eval_dataset = train_test_split['test']
+    print(f"Datos divididos: {len(train_dataset)} para entrenamiento, {len(eval_dataset)} para evaluación.")
+
+    # --- 2. Cargar Tokenizador y Modelo ---
+    print("Paso 2/6: Cargando tokenizador y modelo base...")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=5, ignore_mismatched_sizes=True )
+
+    def tokenize_function(examples):
+        return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=256)
+
+    tokenized_train_dataset = train_dataset.map(tokenize_function, batched=True)
+    tokenized_eval_dataset = eval_dataset.map(tokenize_function, batched=True)
+
+    # --- 3. Definir Métricas ---
+    def compute_metrics(eval_pred):
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis=-1)
+        f1 = f1_score(labels, predictions, average="macro")
+        return {"f1_macro": f1}
+
+    # --- 4. Argumentos de Entrenamiento ---
+    print("Paso 3/6: Configurando los argumentos de entrenamiento...")
+    model_output_dir_name = model_name.replace("/", "_")
+    training_output_dir = f"./results_{model_output_dir_name}"
+
+    training_args = TrainingArguments(
+        output_dir=training_output_dir,
+        num_train_epochs=3,
+        learning_rate=2e-5,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
+        warmup_steps=100,
+        weight_decay=0.01,
+        logging_dir=f'./logs_{model_output_dir_name}',
+        logging_steps=50,
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        load_best_model_at_end=True,
+        metric_for_best_model="f1_macro",
+        greater_is_better=True,
+        report_to="none"
+    )
+
+    # --- 5. Entrenar el Modelo ---
+    print("Paso 4/6: ¡Iniciando el entrenamiento! 🏋️")
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=tokenized_train_dataset,
+        eval_dataset=tokenized_eval_dataset,
+        compute_metrics=compute_metrics,
+        tokenizer=tokenizer,
+    )
+    trainer.train()
+
+    # # --- 6. Guardar el Modelo Final ---
+    # print("Paso 5/6: Entrenamiento completado. Guardando el mejor modelo...")
+    # final_model_path = os.path.join(output_base_dir, model_output_dir_name)
+    
+    # if not os.path.exists(final_model_path):
+    #     os.makedirs(final_model_path)
+
+    # trainer.save_model(final_model_path)
+    # tokenizer.save_pretrained(final_model_path)
+
+    # print(f"Paso 6/6: ✅ ¡Modelo y tokenizador guardados exitosamente en '{final_model_path}'!")
+    
+    return trainer
+
+def train_on_full_dataset(
+    df: pd.DataFrame,
+    model_name: str,
+    text_column: str = 'structured_text',
+    label_column: str = 'Polarity',
+    output_base_dir: str = '../modelos_final'
+):
+    """
+    Entrena un modelo Transformer usando el 100% del DataFrame proporcionado,
+    sin crear un conjunto de validación.
+    """
+    print(f"🚀 Iniciando entrenamiento FINAL para el modelo: {model_name}")
+    print(" Usando el 100% de los datos de entrenamiento.")
+
+    # --- 1. Preparación de Datos ---
+    print("Paso 1/5: Preparando los datos...")
+    df_processed = df.rename(columns={text_column: 'text', label_column: 'label'})
+    df_processed['label'] = df_processed['label'].apply(lambda x: int(x) - 1)
+    
+    # --- CAMBIO CLAVE 1: No hay división, usamos todo como 'train_dataset' ---
+    full_dataset = Dataset.from_pandas(df_processed[['text', 'label']])
+    print(f"Se usarán {len(full_dataset)} ejemplos para el entrenamiento.")
+
+    # --- 2. Cargar Tokenizador y Modelo ---
+    print("Paso 2/5: Cargando tokenizador y modelo base...")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=5)
+
+    def tokenize_function(examples):
+        return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=256)
+
+    # Tokenizamos el dataset completo
+    tokenized_full_dataset = full_dataset.map(tokenize_function, batched=True)
+
+    # --- 3. Argumentos de Entrenamiento ---
+    print("Paso 3/5: Configurando los argumentos de entrenamiento...")
+    model_output_dir_name = model_name.replace("/", "_")
+    # Para este modelo final, guardamos en una carpeta especial
+    final_model_path = os.path.join(output_base_dir, f"{model_output_dir_name}_final_model")
+    
+    # --- CAMBIO CLAVE 2: Desactivar la evaluación ---
+    training_args = TrainingArguments(
+        output_dir=final_model_path, # Guardamos checkpoints y logs aquí
+        num_train_epochs=3,          # Usar el número de épocas que decidiste que es óptimo
+        learning_rate=2e-5,          # Usar el learning rate óptimo
+        per_device_train_batch_size=16,
+        warmup_steps=100,
+        weight_decay=0.01,
+        # Desactivamos la evaluación y el guardado basado en métricas
+        eval_strategy="no",
+        save_strategy="no", # O 'epoch' si quieres guardar checkpoints
+        load_best_model_at_end=False,
+        report_to="none"
+    )
+
+    # --- 4. Entrenar el Modelo ---
+    print("Paso 4/5: ¡Iniciando el entrenamiento final! 🏋️")
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=tokenized_full_dataset,
+        # No hay 'eval_dataset' ni 'compute_metrics'
+        tokenizer=tokenizer,
+    )
+    trainer.train()
+
+    # --- 5. Guardar el Modelo Final ---
+    print("Paso 5/5: Entrenamiento completado. Guardando el modelo final...")
+    
+    if not os.path.exists(final_model_path):
+        os.makedirs(final_model_path)
+
+    trainer.save_model(final_model_path)
+    tokenizer.save_pretrained(final_model_path)
+
+    print(f"✅ ¡Modelo final guardado exitosamente en '{final_model_path}'!")
+    
+    return trainer
